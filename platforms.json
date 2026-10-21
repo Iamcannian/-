@@ -1,0 +1,19 @@
+{
+  "desktop": {
+    "version": "1.1.0",
+    "script": "desktop/clash-party.js",
+    "settings": "desktop/ClashParty-Windows-Settings.zip",
+    "guide": "desktop/README.md",
+    "verifiedClientRelease": "v2.0.4",
+    "mode": "Windows system proxy",
+    "legacyScript": "mihomoScript-clashparty.js"
+  },
+  "mobile": {
+    "version": "3.0.0-test.1",
+    "script": "mobile/bettbox.js",
+    "guide": "mobile/README.md",
+    "legacyScript": "mihomoScript-bettbox-next.js",
+    "unchangedBlobSHA": "e0fda64415e482c8fa6745c2f43bfa58dae21054"
+  },
+  "maintenance": "Independent platform changes; synchronize only each platform legacy compatibility copy; do not execute remote JavaScript."
+}

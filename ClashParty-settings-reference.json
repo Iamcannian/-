@@ -11,7 +11,34 @@
     "useNameserverPolicy": false,
     "sysProxy": {
       "enable": true,
-      "mode": "manual"
+      "mode": "manual",
+      "host": "127.0.0.1",
+      "bypass": [
+        "localhost",
+        "127.*",
+        "::1",
+        "192.168.*",
+        "10.*",
+        "172.16.*",
+        "172.17.*",
+        "172.18.*",
+        "172.19.*",
+        "172.20.*",
+        "172.21.*",
+        "172.22.*",
+        "172.23.*",
+        "172.24.*",
+        "172.25.*",
+        "172.26.*",
+        "172.27.*",
+        "172.28.*",
+        "172.29.*",
+        "172.30.*",
+        "172.31.*",
+        "<local>",
+        "*.local",
+        "*.lan"
+      ]
     },
     "enableMixedPort": true,
     "showMixedPort": 7890,
@@ -23,7 +50,11 @@
     "autoUpdateProfileOnStart": true,
     "autoCloseConnection": true,
     "enableTrafficLogger": false,
-    "autoQuitWithoutCore": false
+    "autoQuitWithoutCore": false,
+    "useSubStore": false,
+    "autoCloseConnectionOnlyGroup": true,
+    "subscriptionTimeout": 30000,
+    "testProfileOnStart": true
   },
   "coreSettings": {
     "mixed-port": 7890,
@@ -48,7 +79,7 @@
       "enable": false
     },
     "profile": {
-      "store-selected": true,
+      "store-selected": false,
       "store-fake-ip": true
     }
   }

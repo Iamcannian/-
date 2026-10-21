@@ -1,4 +1,4 @@
-// Clash Party Windows 系统代理覆写 v1.0.0 — 2026-10-21
+// Clash Party Windows 系统代理覆写 v1.1.0 — 2026-10-21
 // 来源与维护：见 ClashParty-README.md；数据更新与脚本更新相互独立。
 // 衍生自 https://github.com/AIsouler/MyClash ，保留其机场 DNS 兼容算法。
 /*
@@ -21,7 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 // 客户端设置由独立设置包管理；这里的选项用于修改脚本默认行为。
-const SCRIPT_VERSION = "1.0.0-clashparty";
+const SCRIPT_VERSION = "1.1.0-clashparty";
 const ruleOptionsEnable = {
   "手动选择": true,
   "自动选择": true,
@@ -55,7 +55,7 @@ const ruleOptionsEnable = {
   "生成地区自动选择组": true,
   "隐藏地区手动选择组": false,
   "过滤信息节点": true,
-  "屏蔽国外QUIC": true,
+  "屏蔽国外QUIC": false,
   "代理IPV4优先": false,
   "代理IPV6优先": false,
   "下载资源走日常": false,
@@ -71,7 +71,7 @@ const resources = {
   cdnClassical: 'https://ruleset.skk.moe/Clash/non_ip/cdn.txt',
   test: 'https://www.apple.com/library/test/success.html',
 };
-const tuning = { ruleInterval: 86400, testInterval: 600, tolerance: 50, timeout: 3000 };
+const tuning = { ruleInterval: 86400, testInterval: 300, fallbackInterval: 180, tolerance: 50, timeout: 5000 };
 const customizeProxies = [];
 const customRules = []; // 最高优先级例外，例如 'DOMAIN,example.com,直连'
 const iconBaseUrl = resources.icons;
@@ -174,7 +174,7 @@ const serviceCatalog = [
     "name": "FCM",
     "icon": "Fcm.svg",
     "direct": true,
-    "defaultSelected": "直连",
+    "defaultSelected": "默认代理",
     "providers": [
       {
         "key": "googlefcm",
@@ -639,7 +639,7 @@ function prepareNodes(config) {
   }
   const input = [...(Array.isArray(config.proxies) ? config.proxies : []), ...customizeProxies];
   const reserved = new Set(['GLOBAL', 'DIRECT', 'REJECT', 'REJECT-DROP', 'PASS',
-    '默认代理', '日常', '日常-自动选择', '直连', '手动选择', '自动选择', '自动选择地区',
+    '默认代理', '基础服务', '日常', '日常-自动选择', '直连', '手动选择', '自动选择', '自动选择地区',
     '全部节点-自动选择', '故障转移', '负载均衡', '漏网之鱼', '其他国家', '其他国家-自动选择',
     ...serviceCatalog.map(s => s.name), ...regionDefinitions.flatMap(r => [r.name, r.name + '-自动选择', r.name + '-故障转移']),
     ...['双栈','IPv4优先','IPv6优先','仅IPv4','仅IPv6'].map(s => '🇨🇳 直连 | ' + s)]);
@@ -708,8 +708,8 @@ function selectGroup(name, choices, icon = 'Proxy.svg', preferred) {
 }
 function testGroup(name, names, type = 'url-test') {
   return { name, type, proxies: names.length ? unique(names) : ['REJECT'],
-    url: resources.test, interval: tuning.testInterval, timeout: tuning.timeout,
-    lazy: true, 'max-failed-times': 3, 'empty-fallback': 'REJECT',
+    url: resources.test, interval: type === 'fallback' ? tuning.fallbackInterval : tuning.testInterval, timeout: tuning.timeout,
+    lazy: true, 'max-failed-times': 2, 'empty-fallback': 'REJECT',
     ...(type === 'url-test' ? { tolerance: tuning.tolerance } : {}),
     ...(type === 'load-balance' ? { strategy: 'sticky-sessions' } : {}),
     hidden: true, icon: iconBaseUrl + 'Auto.svg' };
@@ -738,13 +738,18 @@ function buildGroups(nodes) {
       fallback.hidden = false;
       groups.push(fallback); choices.push(fallbackName); regionFallbackNames.push(fallbackName);
     }
-    const group = selectGroup(bucket.name, choices);
+    const preferred = choices.includes(bucket.name + '-故障转移') ? bucket.name + '-故障转移' : autoName;
+    const group = selectGroup(bucket.name, choices, 'Proxy.svg', preferred);
     group.icon = bucket.icon; group.hidden = ruleOptionsEnable.隐藏地区手动选择组;
     groups.push(group); regionNames.push(bucket.name);
   }
   // 即使没有日常节点，也显示明确拒绝的日常组；绝不退回普通节点或直连。
   if (daily.length) groups.push(testGroup('日常-自动选择', daily));
   groups.push(selectGroup('日常', daily.length ? ['日常-自动选择', ...daily] : ['REJECT'], 'Available.svg'));
+  // 公共 DNS 与规则下载不依赖用户的默认代理选择。普通节点存在时排除日常。
+  const infrastructure = testGroup('基础服务', normalNames.length ? normalNames : daily, 'fallback');
+  infrastructure.interval = 600; infrastructure.hidden = true;
+  groups.push(infrastructure);
   const baseNames = [];
   if (ruleOptionsEnable.手动选择) { groups.push(selectGroup('手动选择', normalNames, 'Static.svg')); baseNames.push('手动选择'); }
   if (ruleOptionsEnable.自动选择) {
@@ -758,8 +763,10 @@ function buildGroups(nodes) {
     groups.push(group); baseNames.push('故障转移');
   }
   if (ruleOptionsEnable.负载均衡) { groups.push(testGroup('负载均衡', normalNames, 'load-balance')); baseNames.push('负载均衡'); }
-  // 保持常用地区在前；原有 store-selected 可继续记忆同名组选择。
-  const defaultGroup = selectGroup('默认代理', [...regionNames, '日常', ...baseNames]);
+  // 预设优先自动选择；电脑版关闭旧手选恢复，避免固定坏节点覆盖预设。
+  const preferredDefault = normalNames.length
+    ? (baseNames.includes('自动选择') ? '自动选择' : regionNames[0] || baseNames[0]) : '日常';
+  const defaultGroup = selectGroup('默认代理', [...regionNames, '日常', ...baseNames], 'Proxy.svg', preferredDefault);
   groups.unshift(defaultGroup);
   groups.push(selectGroup('直连', directProxies.map(p => p.name), 'China.svg'));
   for (const svc of serviceCatalog) {
@@ -783,7 +790,7 @@ function providerFrom(def) {
   const url = def.key === 'awads' ? resources.ads : def.url ||
     resources.rules + (ip ? 'geoip/' : 'geosite/') + def.slug + '.mrs';
   return { type: 'http', behavior: def.kind, format: 'mrs', interval: tuning.ruleInterval,
-    url, path: './ruleset/clashparty-v1/' + def.key + '.mrs', proxy: '默认代理' };
+    url, path: './ruleset/clashparty-v1/' + def.key + '.mrs', proxy: '基础服务' };
 }
 function buildRules() {
   const providers = {}, domainRules = [], ipRules = [];
@@ -801,7 +808,7 @@ function buildRules() {
   if (ruleOptionsEnable.下载资源走日常) {
     for (const [key, url, behavior] of [['cdn_domain', resources.cdnDomain, 'domain'], ['cdn_classical', resources.cdnClassical, 'classical']]) {
       providers[key] = { type: 'http', behavior, format: 'text', interval: tuning.ruleInterval,
-        url, path: './ruleset/clashparty-v1/' + key + '.txt', proxy: '默认代理' };
+        url, path: './ruleset/clashparty-v1/' + key + '.txt', proxy: '基础服务' };
       cdnRules.push('RULE-SET,' + key + ',日常');
     }
   }
@@ -874,8 +881,8 @@ const commonDnsRegex = new RegExp(
 
 const chinaDNS = ['223.5.5.5#DIRECT', '119.29.29.29#DIRECT'];
 const foreignDNS = [
-  'https://cloudflare-dns.com/dns-query#默认代理',
-  'https://dns.google/dns-query#默认代理',
+  'https://cloudflare-dns.com/dns-query#基础服务',
+  'https://dns.google/dns-query#基础服务',
 ];
 const defaultDNS = [
   '114.114.114.114#DIRECT', 'tls://223.5.5.5#DIRECT',
@@ -1082,9 +1089,9 @@ function main(config) {
     ipv6: true, mode: 'rule', 'log-level': 'info', 'unified-delay': true,
     'tcp-concurrent': true, 'keep-alive-interval': 60, 'find-process-mode': 'strict',
     'allow-lan': false,
-    profile: { ...(config.profile || {}), 'store-selected': true, 'store-fake-ip': true },
+    profile: { ...(config.profile || {}), 'store-selected': false, 'store-fake-ip': true },
     sniffer: { enable: false },
-    dns, hosts, proxies: [...proxies, ...directProxies],
+    dns, hosts: { ...JSON.parse(JSON.stringify(config.hosts || {})), ...hosts }, proxies: [...proxies, ...directProxies],
     'proxy-groups': buildGroups(proxies), 'rule-providers': providers, rules,
   };
   // 只透传客户端运行参数，不继承订阅中未知分流、监听器和远程脚本。
@@ -1097,4 +1104,4 @@ function main(config) {
   }
   return validateResult(result);
 }
-// END OF SCRIPT v1.0.0-clashparty
+// END OF SCRIPT v1.1.0-clashparty

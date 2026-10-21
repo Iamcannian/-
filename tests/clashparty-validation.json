@@ -5,5 +5,29 @@
   "regionalFallbackType": "Fallback",
   "openAIInitialSelection": "美国-故障转移",
   "windowsClientImportTested": false,
-  "fixtureNodesOnly": true
+  "fixtureNodesOnly": true,
+  "desktopVersion": "1.1.0",
+  "clientSourceAudited": "v2.0.4",
+  "defaultConfigurationAssertions": 23153,
+  "phoneRegressionAssertions": 23060,
+  "phoneBlobUnchanged": true,
+  "settingZipScopeValidated": true,
+  "configurationChecks": [
+    "default",
+    "all-options",
+    "daily-only",
+    "Party-controlled-settings merged"
+  ],
+  "defaultSelection": "自动选择",
+  "persistentManualSelection": false,
+  "localFailover": {
+    "test": "local HTTP proxy health fixture",
+    "firstHealthy": "🇺🇸 美国 01",
+    "afterFirstFails": "美国 本地备用测试",
+    "afterRecovery": "🇺🇸 美国 01",
+    "defaultSelection": "自动选择",
+    "windowsClientTested": false,
+    "healthIntervalForTestOnly": 1
+  },
+  "oldSelectedCacheMigrationTestPassed": true
 }

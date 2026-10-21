@@ -1,0 +1,86 @@
+{
+  "appSettings": {
+    "operationMode": "standard",
+    "modeSelected": true,
+    "core": "mihomo",
+    "enableSmartCore": false,
+    "enableSmartOverride": false,
+    "controlDns": false,
+    "controlSniff": false,
+    "disableDnsOverrideGuard": false,
+    "useNameserverPolicy": false,
+    "sysProxy": {
+      "enable": true,
+      "mode": "manual",
+      "host": "127.0.0.1",
+      "bypass": [
+        "localhost",
+        "127.*",
+        "::1",
+        "192.168.*",
+        "10.*",
+        "172.16.*",
+        "172.17.*",
+        "172.18.*",
+        "172.19.*",
+        "172.20.*",
+        "172.21.*",
+        "172.22.*",
+        "172.23.*",
+        "172.24.*",
+        "172.25.*",
+        "172.26.*",
+        "172.27.*",
+        "172.28.*",
+        "172.29.*",
+        "172.30.*",
+        "172.31.*",
+        "<local>",
+        "*.local",
+        "*.lan"
+      ]
+    },
+    "enableMixedPort": true,
+    "showMixedPort": 7890,
+    "enableSocksPort": false,
+    "enableHttpPort": false,
+    "enableRedirPort": false,
+    "enableTproxyPort": false,
+    "autoCheckUpdate": true,
+    "autoUpdateProfileOnStart": true,
+    "autoCloseConnection": true,
+    "enableTrafficLogger": false,
+    "autoQuitWithoutCore": false,
+    "useSubStore": false,
+    "autoCloseConnectionOnlyGroup": true,
+    "subscriptionTimeout": 30000,
+    "testProfileOnStart": true
+  },
+  "coreSettings": {
+    "mixed-port": 7890,
+    "socks-port": 0,
+    "port": 0,
+    "redir-port": 0,
+    "tproxy-port": 0,
+    "allow-lan": false,
+    "bind-address": "127.0.0.1",
+    "ipv6": true,
+    "mode": "rule",
+    "log-level": "info",
+    "unified-delay": true,
+    "tcp-concurrent": true,
+    "find-process-mode": "strict",
+    "external-controller": "",
+    "external-ui": "",
+    "tun": {
+      "enable": false
+    },
+    "sniffer": {
+      "enable": false
+    },
+    "profile": {
+      "store-selected": false,
+      "store-fake-ip": true
+    }
+  }
+}

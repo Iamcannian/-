@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-const source = fs.readFileSync(path.join(__dirname, '..', 'mihomoScript-clashparty.js'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '..', 'desktop', 'clash-party.js'), 'utf8');
 let assertions = 0;
 function ok(value, message) { assertions++; assert.ok(value, message); }
 function runtime(options = {}) {
@@ -31,7 +31,7 @@ function inspect(ctx, config) {
   const rules = result.rules, providers = result['rule-providers'];
   for (const r of rules) for (const match of r.matchAll(/RULE-SET,([^,()]+)/g)) ok(!!providers[match[1]], 'provider exists ' + match[1]);
   for (const p of Object.values(providers)) {
-    ok(p.interval === 86400, '24-hour updates'); ok(p.proxy === '默认代理', 'explicit update route');
+    ok(p.interval === 86400, '24-hour updates'); ok(p.proxy === '基础服务', 'explicit update route');
     ok(p.format !== 'mrs' || p.behavior !== 'classical', 'correct mrs behavior');
   }
   for (const r of rules) {
@@ -118,3 +118,26 @@ assert.ok(!missingUS['proxy-groups'].some(g => g.name === '美国-故障转移')
 const collisionDesktop = c.main({proxies: [proxy('美国-故障转移'), proxy('美国 02')]});
 assert.ok(collisionDesktop.proxies[0].name !== '美国-故障转移');
 console.log('PASS: desktop runtime preservation, regional fallback, AI defaults, resource independence');
+
+// Audited desktop defaults and platform independence.
+const defaultResult = c.main(fixture());
+const defaultGroups = Object.fromEntries(defaultResult['proxy-groups'].map(g => [g.name,g]));
+assert.equal(defaultGroups['默认代理'].proxies[0], '自动选择');
+assert.equal(defaultGroups['香港'].proxies[0], '香港-故障转移');
+assert.equal(defaultGroups['FCM'].proxies[0], '默认代理');
+assert.ok(defaultGroups['基础服务'].proxies.every(n => !n.includes('0.2')));
+assert.equal(defaultGroups['美国-故障转移'].interval, 180);
+assert.equal(defaultGroups['全部节点-自动选择'].interval, 300);
+assert.equal(defaultResult.profile['store-selected'], false);
+assert.ok(defaultResult.dns.nameserver.every(n => n.endsWith('#基础服务')));
+assert.ok(!defaultResult.rules.some(r => r.startsWith('AND,')), 'do not force QUIC restriction in system-proxy preset');
+const inputHosts = {...fixture(),hosts:{'node.internal':'198.51.100.9'}};
+assert.equal(c.main(inputHosts).hosts['node.internal'],'198.51.100.9');
+for(const names of [['香港[0.2]'],['香港 1x']]) {
+ const r=c.main({proxies:names.map(proxy)});
+ const infra=r['proxy-groups'].find(g=>g.name==='基础服务');
+ assert.ok(infra.proxies.length>0);
+}
+assert.equal(fs.readFileSync(path.join(__dirname,'..','mobile','bettbox.js'),'utf8'),fs.readFileSync(path.join(__dirname,'..','mihomoScript-bettbox-next.js'),'utf8'));
+assert.equal(source,fs.readFileSync(path.join(__dirname,'..','mihomoScript-clashparty.js'),'utf8'));
+console.log('PASS: automatic defaults, DNS/update independence, platform isolation and preserved airport hosts');
