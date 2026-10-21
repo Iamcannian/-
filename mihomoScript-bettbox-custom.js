@@ -1,13 +1,9 @@
 // 原作者 AIsouler：https://github.com/AIsouler/MyClash
-// Bettbox 日常低倍率独立分组定制版
-const dailyProxyNames = [];
-
+// Bettbox 定制版 v2：日常仅含 0.2 倍节点，其他国家独立分组
+// 只识别明确的 0.2 倍标记，包括香港[0.2]。
 function isDailyProxy(proxy) {
-  const name = toMatchableName(proxy.name);
-  const bare = name.replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, '').trim();
-  if (dailyProxyNames.some((n) => n === name || n === bare)) return true;
-  return /日常|低倍率|低倍/i.test(name) ||
-    /(?:^|[^\d.])0\.\d+\s*(?:倍|[x×✕✖⨯⨉*])|[x×✕✖⨯⨉*]\s*0\.\d+(?![\d.])/i.test(name);
+  const name = toMatchableName(String(proxy.name || '')).normalize('NFKC');
+  return /[\[【(]\s*0\.20*\s*[\]】)]|(?:^|[^\d.])0\.20*\s*(?:倍|[x×✕✖⨯⨉*])|[x×✕✖⨯⨉*]\s*0\.20*(?![\d.])/i.test(name);
 }
 
 const Compatible_With_Bettbox = { ruleOptionsEnable: true };
@@ -814,7 +810,7 @@ function buildRegionGroups(filteredProxies, customProxies) {
     .flatMap((r) => createRegionGroup(r.name, r.icon, regionGroups[r.name]));
   if (otherProxies.length > 0) {
     generatedRegionGroups.push(...createRegionGroup(
-      '其他节点', `${iconBaseUrl}WorldMap.svg`, otherProxies));
+      '其他国家', `${iconBaseUrl}WorldMap.svg`, otherProxies));
   }
   return generatedRegionGroups;
 }
@@ -1316,7 +1312,7 @@ function main(config) {
 
   const regionAutoNames = generatedRegionGroups.filter((g) =>
     g.type === 'url-test' &&
-    [...regionDefinitions.map((r) => r.name), '其他节点']
+    [...regionDefinitions.map((r) => r.name), '其他国家']
       .some((name) => g.name === `${name}-自动选择`))
     .map((g) => g.name);
 
@@ -1347,14 +1343,14 @@ function main(config) {
   if (dailyNames.length) {
     finalGroups.push({
       ...urlTestBaseOption,
-      name: '日常低倍率-自动选择',
+      name: '日常-自动选择',
       proxies: dailyNames,
     }, {
       ...selectBaseOption,
-      name: '日常低倍率',
+      name: '日常',
       hidden: false,
       icon: `${iconBaseUrl}Available.svg`,
-      proxies: ['日常低倍率-自动选择', ...dailyNames],
+      proxies: ['日常-自动选择', ...dailyNames],
     });
 
     const entryNames = new Set([
@@ -1363,7 +1359,7 @@ function main(config) {
         .map((svc) => svc.name),
     ]);
     for (const group of finalGroups) {
-      if (entryNames.has(group.name)) group.proxies.push('日常低倍率');
+      if (entryNames.has(group.name)) group.proxies.push('日常');
     }
   }
 
