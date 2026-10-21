@@ -1,0 +1,9 @@
+{
+  "engine": "Mihomo v1.19.32 linux amd64",
+  "loadedProviders": 48,
+  "allProvidersNonempty": true,
+  "regionalFallbackType": "Fallback",
+  "openAIInitialSelection": "美国-故障转移",
+  "windowsClientImportTested": false,
+  "fixtureNodesOnly": true
+}
